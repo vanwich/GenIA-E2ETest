@@ -2,133 +2,133 @@
   <img src="geniaLogo.jpg" alt="Logo do Projeto" width="150"/>
 </p>
 
-# GenIA-E2ETest: A Generative AI-Based Approach for End-to-End Test Automation
+# GenIA-E2ETest：基于生成式 AI 的端到端测试自动化方法
 
-This repository contains the artifacts accompanying the paper:
+本仓库包含随论文发布的所有材料：
 
-**GenIA-E2ETest: A Generative AI-Based Approach for End-to-End Test Automation**, accepted for publication at the **39th Brazilian Symposium on Software Engineering (SBES 2025)**.  
+**GenIA-E2ETest: A Generative AI-Based Approach for End-to-End Test Automation**，已被 **第 39 届巴西软件工程研讨会（SBES 2025）** 收录。
 
-## 🔗 Link to the Accepted Paper
+## 🔗 论文链接
 
-The full paper is available at:  
-📄 [./GenIA-E2ETest.pdf](./GenIA-E2ETest.pdf)  
+论文完整版：
+📄 [./GenIA-E2ETest.pdf](./GenIA-E2ETest.pdf)
 
-Authors:  
-- Elvis Júnior (Universidade Federal Fluminense, Brazil)  
-- Alan Valejo (Universidade Federal de São Carlos, Brazil)  
-- Jorge Valverde-Rebaza (Tecnológico de Monterrey, Mexico)  
-- Vânia de Oliveira Neves (Universidade Federal Fluminense, Brazil)
-
----
-
-## 🧪 Artifact Overview
-
-**GenIA-E2ETest** is an open-source approach that automates the generation of **end-to-end (E2E) test scripts** from natural language descriptions using **Large Language Models (LLMs)**. It is designed to support test engineers and researchers by significantly reducing manual effort in test specification and automation.
-
-The proposed solution adopts a **multi-level prompting strategy** and integrates three key components:
-- Parsing of natural language test scenarios using **LLMs-based APIs**
-- Automated extraction and refinement of UI elements through the **Crawl4AI** tool
-- Script generation for the **Robot Framework**, using **SeleniumLibrary** for execution
-
-This repository provides all necessary resources to reproduce the methodology, execute the automation pipeline, and evaluate the results presented in the paper.
+作者：
+- Elvis Júnior（巴西弗鲁米嫩塞联邦大学）
+- Alan Valejo（巴西圣卡洛斯联邦大学）
+- Jorge Valverde-Rebaza（墨西哥蒙特雷理工学院）
+- Vânia de Oliveira Neves（巴西弗鲁米嫩塞联邦大学）
 
 ---
 
-## 📁 Repository Structure
+## 🧪 工件概览
+
+**GenIA-E2ETest** 是一个开源方案，利用 **大语言模型（LLMs）** 将自然语言描述自动转换为 **端到端（E2E）测试脚本**，显著减少测试工程师与研究人员在用例规范和自动化上的人工成本。
+
+该方案采用**分层提示策略**，并整合三个关键组件：
+- 使用 **LLM API** 解析自然语言测试场景；
+- 通过 **Crawl4AI** 自动提取并优化界面元素；
+- 生成可用 **SeleniumLibrary** 执行的 **Robot Framework** 脚本。
+
+本仓库提供复现方法、执行自动化流程以及验证论文结果所需的全部资源。
+
+---
+
+## 📁 仓库结构
 
 ```
 GenIA-E2ETest/
-├── Experiment/                         # Experimental results, validation metrics, and evaluation spreadsheets
-│   └── GenIA-E2ETest.xlsx              # Spreadsheet containing metrics and performance indicators of the evaluation
-├── Prompts/                            # Prompt templates used at each prompting level of the approach
-│   ├── RobotTestGeneration.txt         # Prompt for generating the final Robot Framework script
-│   ├── TestCaseRestructuring.txt       # Prompt for restructuring and clarifying the input test case
-│   ├── UIElementExtraction.txt         # Prompt for guiding UI element identification
-│   └── UIElementRefinement.txt         # Prompt for refining and validating extracted UI components
-├── TestCaseExamples/                   # Natural language test cases
-│   ├── TestCase1.feature               # Example of a manually written test scenario
+├── Experiment/                         # 实验结果、验证指标与评估表格
+│   └── GenIA-E2ETest.xlsx              # 评估指标和性能数据的表格
+├── Prompts/                            # 各提示阶段使用的模板
+│   ├── RobotTestGeneration.txt         # 生成最终 Robot Framework 脚本的提示
+│   ├── TestCaseRestructuring.txt       # 重组与澄清输入测试用例的提示
+│   ├── UIElementExtraction.txt         # 指导识别界面元素的提示
+│   └── UIElementRefinement.txt         # 优化和校验提取 UI 元素的提示
+├── TestCaseExamples/                   # 自然语言测试用例示例
+│   ├── TestCase1.feature               # 手写测试场景示例
 │   └── ...
-├── TestCases/                          # Generated test scripts and intermediate data files
-│   ├── TestCase1/                      # Folder for a specific test case
-│   │   ├── E2ETest.robot               # Final Robot Framework script generated by the system
-│   │   ├── ExtractedData.json          # Raw UI elements extracted using Crawl4AI
-│   │   ├── RefinedTestCase1.json       # Restructured test case in JSON format used as input for UI extraction
-│   │   └── RefinedExtractedData.json   # Refined version of extracted UI components
+├── TestCases/                          # 生成的测试脚本与中间数据
+│   ├── TestCase1/                      # 某个测试用例的输出目录
+│   │   ├── E2ETest.robot               # 系统生成的最终 Robot Framework 脚本
+│   │   ├── ExtractedData.json          # 使用 Crawl4AI 提取的原始 UI 元素
+│   │   ├── RefinedTestCase1.json       # 用于 UI 提取的 JSON 结构化测试用例
+│   │   └── RefinedExtractedData.json   # 精炼后的 UI 元素数据
 │   └── ...
-├── .env.example                        # Template environment file to set the OpenAI API key
-├── GenIA-E2ETest.pdf                   # Accepted SBES 2025 paper (PDF format)
-├── LICENSE                             # Open-source license file 
-├── README.md                           # Main documentation file (this file)
-├── genIAE2ETest.py                     # Main execution script that coordinates the test generation pipeline
-└── requirements.txt                    # List of Python dependencies needed to run the system
+├── .env.example                        # OpenAI API Key 的环境变量模板
+├── GenIA-E2ETest.pdf                   # 通过的 SBES 2025 论文（PDF）
+├── LICENSE                             # 开源许可证
+├── README.md                           # 主要文档（本文件）
+├── genIAE2ETest.py                     # 协调测试生成流程的主脚本
+└── requirements.txt                    # 运行所需的 Python 依赖
 ```
 
 ---
 
-## 📋 Requirements
+## 📋 运行要求
 
-### Hardware
+### 硬件
 
-The experiments and test executions were conducted on the following configuration:
+实验与测试执行环境：
 
-- Operating System: Windows 11 Home Single Language 64-bit (Build 22631)
-- Processor: Intel(R) Core(TM) i7-1165G7 @ 2.80GHz (8 cores)
-- RAM: 12 GB
-- Disk Space: At least 1 GB of free space
+- 操作系统：Windows 11 Home Single Language 64-bit（Build 22631）
+- 处理器：Intel(R) Core(TM) i7-1165G7 @ 2.80GHz（8 核）
+- 内存：12 GB
+- 磁盘空间：至少 1 GB 可用空间
 
-> ℹ️ Note: While the evaluations were performed using this setup, the project is not hardware-intensive. It is also capable of running on machines with lower specifications, such as dual-core processors and 8 GB of RAM, especially for small- to medium-sized web applications.
+> ℹ️ 说明：虽然评估在上述配置下完成，但项目对硬件要求不高。对于小型到中型 Web 应用，即便是双核 CPU、8 GB 内存的机器也能运行。
 
-### Software
+### 软件
 
-The software environment used in this project includes:
+项目中使用的软件环境：
 
 - Python 3.12.3
 - Robot Framework 7.2.2
-- Google Chrome v135 (or later)
+- Google Chrome v135（或更高版本）
 - Crawl4AI v0.5.0.post8
 - Git
 
 ---
 
-## ⚙️ Installation & Usage
+## ⚙️ 安装与使用
 
-1. **Clone the repository**:
+1. **克隆仓库**：
 ```bash
 git clone https://github.com/uffsoftwaretesting/GenIA-E2ETest.git
 cd GenIA-E2ETest
 ```
 
-2. **Configure your OpenAI API key**:
+2. **配置 OpenAI API Key**：
 ```bash
 copy .env.example .env
-# Edit the .env file and add your OpenAI API key
+# 编辑 .env 文件并填入 OpenAI API Key
 ```
 
-3. **Create and activate a virtual environment**:
+3. **创建并激活虚拟环境**：
 ```bash
-# Create virtual environment
+# 创建虚拟环境
 python -m venv venv
 
-# Activate virtual environment
-.\venv\Scripts\Activate
+# 激活虚拟环境
+\.\venv\Scripts\Activate
 ```
 
-4. **Install dependencies and Playwright setup**:
+4. **安装依赖并配置 Playwright**：
 ```bash
 pip install -r requirements.txt
 playwright install
-playwright install-deps  # Optional: needed only for Linux systems
+playwright install-deps  # 可选：仅 Linux 系统需要
 ```
 
-5. **Define a natural language test scenario and specify the URLs of the target web application**:
+5. **编写自然语言测试场景并指定目标 Web 应用的 URL**：
 ```bash
 cd TestCaseExamples
-# Create a new .feature file to describe your test scenario
+# 新建 .feature 文件描述测试场景
 ni TestCase1.feature
 notepad TestCase1.feature
 ```
 
-5.1 **Example content for `TestCase1.feature`**:
+5.1 **`TestCase1.feature` 示例内容**：
 ```feature
 urls = ["http://automationexercise.com", "https://automationexercise.com/login"]
 
@@ -141,38 +141,38 @@ Test Case 1: Login User with incorrect email and password
 6. Verify error 'Your email or password is incorrect!' is visible
 ```
 
-6. **Run the full pipeline to generate the End-to-End test script**:
+6. **运行完整流程以生成端到端测试脚本**：
 ```bash
 python genIAE2ETest.py
 ```
 
-7. **Execute the generated test script using Robot Framework**:
+7. **使用 Robot Framework 执行生成的测试脚本**：
 ```bash
 robot TestCases/TestCase1/E2ETest.robot
 ```
 
 ---
 
-## 📚 Ethical and Legal Considerations
+## 📚 伦理与法律说明
 
-- All datasets and web applications used in the evaluation are either **publicly available** or **synthetically generated**.
-- No real user data or sensitive information was used.
-- All software components are released under an open-source license.
-
----
-
-## 📞 Support and Contact
-
-For questions or support, please contact:
-- Elvis Júnior 
-- Vânia Neves 
+- 评估中使用的数据集和 Web 应用均为**公开可用**或**人工合成**。
+- 未使用任何真实用户数据或敏感信息。
+- 所有软件组件均以开源许可证发布。
 
 ---
 
-## 📚 Citation
+## 📞 支持与联系
+
+若有疑问或需要支持，请联系：
+- Elvis Júnior
+- Vânia Neves
+
+---
+
+## 📚 引用
 [![Cite this paper](https://img.shields.io/badge/Cite%20this%20paper-SBES%202025-blue)](#citation)
 
-If you use **GenIA-E2ETest** in your research or project, please cite:
+如果你在研究或项目中使用 **GenIA-E2ETest**，请引用：
 
 ```bibtex
 
@@ -182,11 +182,11 @@ If you use **GenIA-E2ETest** in your research or project, please cite:
   booktitle    = {Proceedings of the XXXIX Brazilian Symposium on Software Engineering (SBES)},
   year         = {2025},
   address      = {Recife-PE, Brazil}
-} 
+}
 
 ```
 
-**Text citation format:**
+**正文引用格式：**
 
 ```
 Junior, E., Valejo, A., Valverde-Rebaza, J. C., & Neves, V. O. (2025). GenIA-E2ETest: A generative AI-based approach for end-to-end test automation. In: Proceedings of the XXXIX Brazilian Symposium on Software Engineering (SBES). To appear.
@@ -195,8 +195,6 @@ Junior, E., Valejo, A., Valverde-Rebaza, J. C., & Neves, V. O. (2025). GenIA-E2E
 
 ---
 
-## 🌐 Additional Resources
+## 🌐 其他资源
 
-- [GenIA-E2ETest GitHub Repository](https://github.com/uffsoftwaretesting/GenIA-E2ETest)
-- [Movie Ticketing WebApp Repository](https://github.com/elvisjuniorr/Projeto-Cinema)
-- [Crawl4AI - DOM Analyzer Tool](https://github.com/unclecode/crawl4ai)
+- [GenIA-E2ETest GitHub 仓库](https://github.com/uffsoftwaretesting/GenIA-E2ETest)
