@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, LLMConfig, MemoryAdaptiveDispatcher, CrawlerMonitor, DisplayMode
 from crawl4ai.chunking_strategy import *
@@ -6,7 +7,7 @@ from pydantic import BaseModel, Field
 import openai
 import os
 from dotenv import load_dotenv
-import json 
+import json
 from datetime import datetime
 from typing import List
 from pathlib import Path
@@ -41,11 +42,82 @@ load_dotenv()
 
 test_case_file = os.getenv("TEST_CASE")
 
-api_key_string = os.getenv("OPENAI_API_KEY")
-
 exampleFolder = Path('TestCaseExamples')
 
 newFolder = Path('TestCases')
+
+
+def load_config():
+    config_path = Path(__file__).resolve().parent / "config.properties"
+    config = {}
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as file:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    config[key.strip()] = value.strip()
+    return config
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Generate E2E tests with configurable LLM providers")
+    parser.add_argument(
+        "--provider",
+        choices=["openai", "ollama"],
+        help="LLM provider to use. Overrides environment variables and config.properties.",
+    )
+    parser.add_argument(
+        "--api-key",
+        help="API key for the selected provider. Overrides environment variables and config.properties.",
+    )
+    parser.add_argument(
+        "--api-base",
+        help="Base URL for the selected provider. Overrides environment variables and config.properties.",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Name of the model to query (default Ollama: qwen2.5vl:32b; default OpenAI: gpt-4o-mini).",
+    )
+    return parser.parse_args()
+
+
+def build_llm_settings(args=None):
+    args = args or argparse.Namespace()
+    config = load_config()
+    provider = (getattr(args, "provider", None) or os.getenv("LLM_PROVIDER") or config.get("llmProvider") or "ollama").lower()
+
+    if provider == "ollama":
+        api_key = getattr(args, "api_key", None) or os.getenv("OLLAMA_API_KEY") or config.get("ollamaApiKey")
+        if not api_key:
+            raise RuntimeError(
+                "Missing Ollama API key. Set the OLLAMA_API_KEY environment variable or "
+                "provide ollamaApiKey in config.properties."
+            )
+
+        api_base = getattr(args, "api_base", None) or os.getenv("OLLAMA_API_BASE") or config.get("ollamaApiBase") or "https://suz-ai01.eisgroup.com/ollama/api/generate"
+        model = getattr(args, "model", None) or os.getenv("OLLAMA_MODEL") or config.get("ollamaModel") or "qwen2.5vl:32b"
+        client = openai.OpenAI(api_key=api_key, base_url=api_base)
+        llm_provider = f"ollama/{model}"
+    else:
+        api_key = getattr(args, "api_key", None) or os.getenv("OPENAI_API_KEY") or config.get("openaiApiKey")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER is 'openai'.")
+        api_base = getattr(args, "api_base", None) or os.getenv("OPENAI_BASE_URL") or config.get("openaiBaseUrl") or None
+        model = getattr(args, "model", None) or os.getenv("OPENAI_MODEL") or config.get("openaiModel") or "gpt-4o-mini"
+        client = openai.OpenAI(api_key=api_key, base_url=api_base)
+        llm_provider = f"openai/{model}"
+
+    return {
+        "provider": provider,
+        "api_key": api_key,
+        "model": model,
+        "client": client,
+        "llm_provider": llm_provider,
+    }
 
 class ExtractedElement(BaseModel):
     type: str = Field(
@@ -107,6 +179,11 @@ async def main():
 
     create_directory_if_not_exists(newFolder)
 
+    args = parse_arguments()
+    llm_settings = build_llm_settings(args)
+    client = llm_settings["client"]
+    chat_model = llm_settings["model"]
+
     async with AsyncWebCrawler() as crawler:
 
         for arquivo in exampleFolder.iterdir():
@@ -116,71 +193,80 @@ async def main():
                     newTestCaseFolder = newFolder / arquivo.stem
                     create_directory_if_not_exists(newTestCaseFolder)
 
-                    client = openai.OpenAI(api_key=api_key_string)
+                    completion_messages = [
+                            {
+                            "role": "system",
+                            "content": (
+                                f"""You are a highly skilled software test automation engineer. Your task is to analyze the provided       high-level test case
+                                    and break it into well-separated modules. Each module must represent a unique web page, identified by its full URL.
 
-                    completion = client.beta.chat.completions.parse(
-                        model="gpt-4o-mini",
-                        messages=[
-                                {
-                                "role": "system",
-                                "content": (
-                                    f"""You are a highly skilled software test automation engineer. Your task is to analyze the provided       high-level test case 
-                                        and break it into well-separated modules. Each module must represent a unique web page, identified by its full URL.
+                                    Test Case: {test_case}
 
-                                        Test Case: {test_case}
+                                    OBJECTIVE:
+                                    - Break the test case into a list of modules.
+                                    - Each module should group actions performed on a single page (same URL).
+                                    - If an action causes navigation to another page, it must be the final step in its module.
+                                    - The next module must start with the new URL.
 
-                                        OBJECTIVE:
-                                        - Break the test case into a list of modules.
-                                        - Each module should group actions performed on a single page (same URL).
-                                        - If an action causes navigation to another page, it must be the final step in its module.
-                                        - The next module must start with the new URL.
+                                    IMPORTANT RULES:
+                                    - Do NOT omit any URLs. Every page transition must include its full URL.
+                                    - Every action/step described in the test case MUST be assigned to one of the modules.
+                                    - No steps should be left out or described outside of the modules.
 
-                                        IMPORTANT RULES:
-                                        - Do NOT omit any URLs. Every page transition must include its full URL.
-                                        - Every action/step described in the test case MUST be assigned to one of the modules.
-                                        - No steps should be left out or described outside of the modules.
+                                    STRUCTURE PER MODULE:
+                                    - url: full URL of the page, including 'https://'
+                                    - purpose: short description of the page’s role in the test
+                                    - execution_steps: list of steps (actions/verifications) as objects with:
+                                        - step: string describing the user action
+                                        - extracted_data: ALWAYS an empty list at this stage
 
-                                        STRUCTURE PER MODULE:
-                                        - url: full URL of the page, including 'https://'
-                                        - purpose: short description of the page’s role in the test
-                                        - execution_steps: list of steps (actions/verifications) as objects with:
-                                            - step: string describing the user action
-                                            - extracted_data: ALWAYS an empty list at this stage
+                                    **IMPORTANT:**
+                                    At this stage, `extracted_data` must be an empty list for all steps. It will be completed in a separate process.
 
-                                        **IMPORTANT:**
-                                        At this stage, `extracted_data` must be an empty list for all steps. It will be completed in a separate process.
+                                    MODEL SCHEMA:
+                                    TestCaseModel:
+                                    testCase: str
+                                    modules: List[ModuleModel]
 
-                                        MODEL SCHEMA:
-                                        TestCaseModel:
-                                        testCase: str
-                                        modules: List[ModuleModel]
+                                    ModuleModel:
+                                    url: str
+                                    purpose: str
+                                    execution_steps: List[ExecutionStepModel]
 
-                                        ModuleModel:
-                                        url: str
-                                        purpose: str
-                                        execution_steps: List[ExecutionStepModel]
+                                    ExecutionStepModel:
+                                    step: str
+                                    extracted_data: List (leave it empty for now)
 
-                                        ExecutionStepModel:
-                                        step: str
-                                        extracted_data: List (leave it empty for now)
+                                    EXAMPLE:
+                                    - If a step says 'Click Login', place that step in one module.
+                                    - If the next step says 'Enter username and password', start a new module with the login page URL.
 
-                                        EXAMPLE:
-                                        - If a step says 'Click Login', place that step in one module.
-                                        - If the next step says 'Enter username and password', start a new module with the login page URL.
+                                    INSTRUCTIONS:
+                                    - Separate steps by page (URL)
+                                    - A navigation action = boundary between modules
+                                    - Use one module per page (i.e., per URL)
+                                    - Do NOT omit or skip any URLs or steps
+                                    - Return a clean JSON matching the schema above"""
+                                )
+                            }
+                    ]
 
-                                        INSTRUCTIONS:
-                                        - Separate steps by page (URL)
-                                        - A navigation action = boundary between modules
-                                        - Use one module per page (i.e., per URL)
-                                        - Do NOT omit or skip any URLs or steps
-                                        - Return a clean JSON matching the schema above"""
-                                    )
-                                }
-                        ],
-                        response_format=TestCaseModel
-                    )   
-
-                    refinedTestCase = completion.choices[0].message.parsed.model_dump_json(indent=2)
+                    if llm_settings["provider"] == "openai":
+                        completion = client.beta.chat.completions.parse(
+                            model=chat_model,
+                            messages=completion_messages,
+                            response_format=TestCaseModel
+                        )
+                        refinedTestCase = completion.choices[0].message.parsed.model_dump_json(indent=2)
+                    else:
+                        completion = client.chat.completions.create(
+                            model=chat_model,
+                            messages=completion_messages,
+                            response_format={"type": "json_object"}
+                        )
+                        refinedTestCase = TestCaseModel.model_validate_json(
+                            completion.choices[0].message.content
+                        ).model_dump_json(indent=2)
 
                     newRefinedTestCase = newTestCaseFolder / ("Refined"+arquivo.stem+".json")
 
@@ -208,9 +294,9 @@ async def main():
                             # session_id = "Session_Id"
                             llm_strategy_1 = LLMExtractionStrategy(
                                 llm_config=LLMConfig(
-                                    provider="openai/gpt-4o-mini",
-                                    api_token=api_key_string
-                                ),    
+                                    provider=llm_settings["llm_provider"],
+                                    api_token=llm_settings["api_key"]
+                                ),
                                 schema=ExtractedElement.model_json_schema(),
                                 extraction_type="schema",
                                 input_format="html",
@@ -301,9 +387,9 @@ async def main():
 
                             llm_strategy_2 = LLMExtractionStrategy(
                                 llm_config=LLMConfig(
-                                    provider="openai/gpt-4o-mini",
-                                    api_token=api_key_string
-                                ),    
+                                    provider=llm_settings["llm_provider"],
+                                    api_token=llm_settings["api_key"]
+                                ),
                                 schema=ExtractedElement.model_json_schema(),
                                 extraction_type="schema",
                                 input_format="html",
@@ -404,11 +490,11 @@ async def main():
                         with open(newTestCaseFileAttemptRefinedExtractedData, "w", encoding="utf-8") as f:
                             json.dump(test_case_json2, f, indent=4, ensure_ascii=False)
                         
-                        print("Generating Robot Framework script...") 
+                        print("Generating Robot Framework script...")
                         robot_test = client.chat.completions.create(
-                            model="gpt-4o-mini",
+                            model=chat_model,
                             messages=[
-                                {"role": "system", 
+                                {"role": "system",
                                 "content": "You are a skilled test automation engineer. Your task is to guide the user in creating an end-to-end (E2E) test script using Python, Robot Framework, and Selenium based on the provided test case and list of JSON objects."},
                                 {"role": "user", 
                                 "content": f""" Your task is, based on the following test case and HTML's element informations: {test_case_json2}, generate an executable and compilable Robot Framework E2E test script using Selenium and Python.
