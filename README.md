@@ -98,11 +98,27 @@ git clone https://github.com/uffsoftwaretesting/GenIA-E2ETest.git
 cd GenIA-E2ETest
 ```
 
-2. **配置 OpenAI API Key**：
+2. **配置 LLM 访问参数（默认 Ollama，可切换 OpenAI）**：
 ```bash
 copy .env.example .env
-# 编辑 .env 文件并填入 OpenAI API Key
+# 编辑 .env 文件，至少填入 OLLAMA_API_KEY（或切换为 OpenAI 并填入 OPENAI_API_KEY）
 ```
+
+`.env` 支持的关键变量：
+
+| 变量名 | 说明 | 默认值 |
+| --- | --- | --- |
+| `LLM_PROVIDER` | 选择 `ollama`（默认）或 `openai` | `ollama` |
+| `OPENAI_API_KEY` | 使用 OpenAI 时的 API Key（支持 `config.properties` 中的 `openaiApiKey` 回退） | _必填（当 LLM_PROVIDER=openai）_ |
+| `OPENAI_BASE_URL` | 可选的 OpenAI 兼容网关地址（可用 `config.properties` 的 `openaiBaseUrl` 覆盖） | OpenAI 官方端点 |
+| `OPENAI_MODEL` | OpenAI 聊天/提取模型名称（可用 `config.properties` 的 `openaiModel` 覆盖） | `gpt-4o-mini` |
+| `OLLAMA_API_KEY` | 使用 Ollama 时的 API Key，亦可在 `config.properties` 中设置 `ollamaApiKey` | _必填（当 LLM_PROVIDER=ollama）_ |
+| `OLLAMA_API_BASE` | Ollama 的兼容接口地址（可由 `config.properties` 的 `ollamaApiBase` 提供） | `https://suz-ai01.eisgroup.com/ollama/api/generate` |
+| `OLLAMA_MODEL` | Ollama 模型名称（可由 `config.properties` 的 `ollamaModel` 提供） | `qwen2.5vl:32b` |
+
+> 也可在 `genIAE2ETest.py` 同目录创建 `config.properties`，用 `key=value` 形式提供上述同名字段（如 `ollamaApiKey=...`），脚本会优先读取环境变量，其次读取配置文件。
+
+> 运行脚本时也可以通过命令行覆盖配置，例如：`python genIAE2ETest.py --provider ollama --api-base https://... --model qwen2.5vl:32b`。
 
 3. **创建并激活虚拟环境**：
 ```bash
