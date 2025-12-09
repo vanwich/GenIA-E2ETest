@@ -157,14 +157,11 @@ Test Case 1: Login User with incorrect email and password
 6. Verify error 'Your email or password is incorrect!' is visible
 ```
 
-6. **运行完整流程以生成端到端测试脚本**：
+6. **运行完整流程以生成端到端测试脚本**（内置执行计划落地）：
+   - 当前仓库直接在 `TestCases/<用例名>/<次数.用例名>/` 下生成 `execution_plan.log` 与 `execution_summary.json`，包含从精炼 JSON 推导出的执行步骤与统计信息。
+   - 运行示例：
 ```bash
 python genIAE2ETest.py
-```
-
-7. **使用 Robot Framework 执行生成的测试脚本**：
-```bash
-robot TestCases/TestCase1/E2ETest.robot
 ```
 
 ---

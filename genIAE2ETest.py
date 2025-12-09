@@ -1,16 +1,26 @@
 import argparse
 import asyncio
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, LLMConfig, MemoryAdaptiveDispatcher, CrawlerMonitor, DisplayMode
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import List
+
+import openai
+from crawl4ai import (
+    AsyncWebCrawler,
+    BrowserConfig,
+    CacheMode,
+    CrawlerMonitor,
+    CrawlerRunConfig,
+    DisplayMode,
+    LLMConfig,
+    MemoryAdaptiveDispatcher,
+)
 from crawl4ai.chunking_strategy import *
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
-from pydantic import BaseModel, Field
-import openai
-import os
 from dotenv import load_dotenv
-import json
-from datetime import datetime
-from typing import List
-from pathlib import Path
+from pydantic import BaseModel, Field
 
 def create_directory_if_not_exists(path):
     Path(path).mkdir(parents=True, exist_ok=True)
@@ -118,6 +128,42 @@ def build_llm_settings(args=None):
         "client": client,
         "llm_provider": llm_provider,
     }
+
+
+def write_internal_execution_plan(feature_path: str, refined_data_path: str, output_dir: str, log_path: Path):
+    with open(refined_data_path, "r", encoding="utf-8") as f:
+        test_case = json.load(f)
+
+    lines = [
+        f"Feature file: {feature_path}",
+        f"Refined data: {refined_data_path}",
+        "Execution outline:",
+    ]
+
+    for module_idx, module in enumerate(test_case.get("modules", []), start=1):
+        lines.append(f"Module {module_idx}: {module.get('url', '')}")
+        lines.append(f"Purpose: {module.get('purpose', '')}")
+        for step_idx, step in enumerate(module.get("execution_steps", []), start=1):
+            lines.append(f"  {step_idx}. {step.get('step', '')}")
+            for element in step.get("extracted_data", []):
+                lines.append(
+                    "    - Element: "
+                    f"{element.get('type', '')} | {element.get('request_description', '')} | "
+                    f"{element.get('identifier_type', '')}: {element.get('identifier_tracking', '')}"
+                )
+
+    log_path = Path(log_path)
+    create_directory_if_not_exists(log_path.parent)
+    log_path.write_text("\n".join(lines), encoding="utf-8")
+
+    summary_path = Path(output_dir) / "execution_summary.json"
+    summary_payload = {
+        "feature_path": feature_path,
+        "refined_data_path": refined_data_path,
+        "modules": len(test_case.get("modules", [])),
+        "steps": sum(len(m.get("execution_steps", [])) for m in test_case.get("modules", [])),
+    }
+    summary_path.write_text(json.dumps(summary_payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 class ExtractedElement(BaseModel):
     type: str = Field(
@@ -283,8 +329,6 @@ async def main():
                         newTestCaseFileAttemptExtractedData = newTestCaseFolderAttempt / "ExtractedData.json"
 
                         newTestCaseFileAttemptRefinedExtractedData = newTestCaseFolderAttempt / "RefinedExtractedData.json"
-
-                        newTestCaseFileAttemptE2ETestScript = newTestCaseFolderAttempt / "E2ETest.robot"
                         
                         test_case_json1 = json.loads(refinedTestCase)
 
@@ -490,23 +534,15 @@ async def main():
                         with open(newTestCaseFileAttemptRefinedExtractedData, "w", encoding="utf-8") as f:
                             json.dump(test_case_json2, f, indent=4, ensure_ascii=False)
                         
-                        print("Generating Robot Framework script...")
-                        robot_test = client.chat.completions.create(
-                            model=chat_model,
-                            messages=[
-                                {"role": "system",
-                                "content": "You are a skilled test automation engineer. Your task is to guide the user in creating an end-to-end (E2E) test script using Python, Robot Framework, and Selenium based on the provided test case and list of JSON objects."},
-                                {"role": "user", 
-                                "content": f""" Your task is, based on the following test case and HTML's element informations: {test_case_json2}, generate an executable and compilable Robot Framework E2E test script using Selenium and Python.
-                                Return only the code, without explanations, markdown, or comments. The output must start with *** Settings *** and follow the Robot Framework syntax strictly.
-                                """}
-                            ]
+                        log_path = newTestCaseFolderAttempt / "execution_plan.log"
+                        print("Writing internal execution outline...")
+                        write_internal_execution_plan(
+                            feature_path=str(arquivo.resolve()),
+                            refined_data_path=str(newTestCaseFileAttemptRefinedExtractedData.resolve()),
+                            output_dir=str(newTestCaseFolderAttempt.resolve()),
+                            log_path=log_path,
                         )
-
-                        with open(newTestCaseFileAttemptE2ETestScript, "w", encoding="utf-8") as f:
-                            f.write(robot_test.choices[0].message.content)
-
-                        print("Script generated successfully.")
+                        print(f"Execution outline saved to {log_path}.")
     
 
 if __name__ == "__main__":
