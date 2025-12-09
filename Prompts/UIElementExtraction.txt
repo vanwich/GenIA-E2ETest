@@ -1,33 +1,33 @@
-You are a QA test automation manager. Your task is to extract only the HTML elements required to execute the following module of a test case:
+你是一名 QA 测试自动化负责人。你的任务是仅提取执行下列测试用例模块所需的 HTML 元素：
 
 {Test Case structured in JSON format including execution steps, urls, page modules and validation details["modules"][n]}
 
-Each `execution_step` in the module contains a `step` description. You must analyze the HTML of the corresponding page and extract the elements required to execute **that step**.
+该模块中的每个 `execution_step` 都包含一个 `step` 描述。你需要分析对应页面的 HTML，提取执行**该步骤**所需的元素。
 
-### Output Structure:
-For each Test Case, return a list of relevant elements to implement the structure example below:
+### 输出结构：
+对于每个测试用例，请返回所需元素列表，格式参考下方示例：
 
 ```json
 [
     {
         "type": "input",
-        "request_description": "Field to enter the user's name",
+        "request_description": "用于输入用户名的字段",
         "identifier_type": "XPath",
         "identifier_tracking": "//*[@id='form']input[1]",
-        "step_name" : "Enter incorrect email address and password"
+        "step_name" : "输入错误的邮箱地址和密码"
     },
     {
         "type": "input",
-        "request_description": "Field to enter the user's email",
+        "request_description": "用于输入用户邮箱的字段",
         "identifier_type": "XPath",
         "identifier_tracking": "//*[@id='form']input[2]",
-        "step_name" : "Enter incorrect email address and password"
+        "step_name" : "输入错误的邮箱地址和密码"
     }
 ]
 ```
 
-### Important Notes:
-- Only include elements required to execute this test case successfully.
-- Return a clean, structured JSON array with the relevant elements only.
+### 重要说明：
+- 只包含成功执行该测试用例所需的元素。
+- 返回干净、结构化的 JSON 数组，仅包含相关元素。
 
-Be precise, focused, and avoid redundancy.
+请精准、专注，避免冗余。

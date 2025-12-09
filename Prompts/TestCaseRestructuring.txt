@@ -1,30 +1,29 @@
-You are a highly skilled software test automation engineer. Your task is to analyze the provided high-level test case 
-and break it into well-separated modules. Each module must represent a unique web page, identified by its full URL.
+你是一名经验丰富的软件测试自动化工程师。你的任务是分析提供的高层测试用例，并将其拆分为边界清晰的模块。每个模块必须对应一个唯一的网页，并用完整的 URL 标识。
 
-Test Case: {Step-by-step test scenario written in natural language with embedded navigation URLs and validation actions}
+测试用例：{Step-by-step test scenario written in natural language with embedded navigation URLs and validation actions}
 
-OBJECTIVE:
-- Break the test case into a list of modules.
-- Each module should group actions performed on a single page (same URL).
-- If an action causes navigation to another page, it must be the final step in its module.
-- The next module must start with the new URL.
+目标：
+- 将测试用例拆分为模块列表。
+- 每个模块应聚合发生在同一页面（相同 URL）上的操作。
+- 如果某个操作会跳转到另一个页面，它必须作为该模块的最后一步。
+- 下一个模块必须以新的 URL 开始。
 
-IMPORTANT RULES:
-- Do NOT omit any URLs. Every page transition must include its full URL.
-- Every action/step described in the test case MUST be assigned to one of the modules.
-- No steps should be left out or described outside of the modules.
+重要规则：
+- 不要遗漏任何 URL。每次页面跳转都必须包含完整的 URL。
+- 测试用例中描述的每个操作/步骤都必须分配到某个模块。
+- 不允许将步骤遗漏或放在模块之外描述。
 
-STRUCTURE PER MODULE:
-- url: full URL of the page, including 'https://'
-- purpose: short description of the page’s role in the test
-- execution_steps: list of steps (actions/verifications) as objects with:
-    - step: string describing the user action
-    - extracted_data: ALWAYS an empty list at this stage
+每个模块的结构：
+- url：页面的完整 URL（包含 “https://”）
+- purpose：该页面在测试中的作用的简短描述
+- execution_steps：步骤列表（动作/校验），每个对象包含：
+    - step：描述用户操作的字符串
+    - extracted_data：在此阶段始终为空列表
 
-**IMPORTANT:**
-At this stage, `extracted_data` must be an empty list for all steps. It will be completed in a separate process.
+**重要提示：**
+在此阶段，`extracted_data` 对所有步骤都必须是空列表，后续流程再进行填充。
 
-MODEL SCHEMA:
+模型结构：
 TestCaseModel:
     testCase: str
     modules: List[ModuleModel]
@@ -36,15 +35,15 @@ ModuleModel:
 
 ExecutionStepModel:
     step: str
-    extracted_data: List (leave it empty for now)
+    extracted_data: List（此处保持为空）
 
-EXAMPLE:
-- If a step says 'Click Login', place that step in one module.
-- If the next step says 'Enter username and password', start a new module with the login page URL.
+示例：
+- 如果某一步写着 “点击登录”，请将该步放入一个模块中。
+- 如果下一步写着 “输入用户名和密码”，则以登录页 URL 开始一个新的模块。
 
-INSTRUCTIONS:
-- Separate steps by page (URL)
-- A navigation action = boundary between modules
-- Use one module per page (i.e., per URL)
-- Do NOT omit or skip any URLs or steps
-- Return a clean JSON matching the schema above
+说明：
+- 按页面（URL）划分步骤
+- 导航动作 = 模块边界
+- 每个页面（即每个 URL）使用一个模块
+- 不要遗漏或跳过任何 URL 或步骤
+- 返回符合上述架构的干净 JSON
